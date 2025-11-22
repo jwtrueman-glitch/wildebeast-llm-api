@@ -18,6 +18,24 @@ if not RENDER_AUTH_TOKEN:
     raise RuntimeError("WILDEBEAST_RENDER_TOKEN environment variable is not set")
 
 
+@app.get("/")
+async def root():
+    """
+    Root endpoint providing API information and available endpoints.
+    """
+    return {
+        "service": "Wildebeast LLM API",
+        "version": "1.0.0",
+        "status": "operational",
+        "endpoints": {
+            "health": "/health",
+            "forecast": "/api/v1/forecast",
+            "docs": "/docs",
+            "openapi": "/openapi.json"
+        }
+    }
+
+
 @app.get("/health")
 async def health_check():
     """
