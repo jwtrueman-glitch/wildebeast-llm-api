@@ -12,7 +12,7 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# Get Bearer token from environment variable
+# Get API key from environment variable (for wildebeast API authentication)
 RENDER_AUTH_TOKEN = os.getenv("WILDEBEAST_RENDER_TOKEN")
 if not RENDER_AUTH_TOKEN:
     raise RuntimeError("WILDEBEAST_RENDER_TOKEN environment variable is not set")
@@ -74,7 +74,8 @@ async def forecast(question: ForecastQuestion):
     - `terrain_adjustments`: List of factors that adjusted the probability
     - `full_explanation`: Human-readable explanation of the forecast
     """
-    headers = {"Authorization": f"Bearer {RENDER_AUTH_TOKEN}"}
+    # wildebeast API expects X-Api-Key header, not Authorization Bearer
+    headers = {"X-Api-Key": RENDER_AUTH_TOKEN}
     
     try:
         async with httpx.AsyncClient() as client:
