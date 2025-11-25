@@ -139,8 +139,15 @@ async def forecast(question: ForecastQuestion):
                 error_detail = f"Render API request failed with status code {response.status_code}"
                 try:
                     error_body = response.json()
-                    if "detail" in error_body:
+                    # Try to get the actual error message from wildebeast API
+                    if "error" in error_body:
+                        error_detail = error_body["error"]
+                    elif "message" in error_body:
+                        error_detail = error_body["message"]
+                    elif "detail" in error_body:
                         error_detail = error_body["detail"]
+                    else:
+                        error_detail = str(error_body)
                 except:
                     error_detail = response.text or error_detail
                 
