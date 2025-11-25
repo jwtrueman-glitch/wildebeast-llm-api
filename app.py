@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import httpx
 import os
-from models import ForecastQuestion, ForecastResult
+from models import ForecastQuestion, ForecastResult, AdjustmentDetail
 
 app = FastAPI(
     title="Wildebeast LLM API",
