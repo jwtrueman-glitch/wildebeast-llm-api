@@ -81,13 +81,59 @@ async def forecast(question: ForecastQuestion):
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://wildebeast.onrender.com/api/forecast",
-                json={"question": question.question},
+                json={"message": question.question},
                 headers=headers,
                 timeout=30.0
             )
             
             if response.status_code == 200:
-                return response.json()
+                wildebeast_response = response.json()
+                # Transform wildebeast response format to our ForecastResult format
+                forecast_data = wildebeast_response.get("response", {})
+                rationale = wildebeast_response.get("rationale", "")
+                
+                # Extract and convert probability values
+                final_prob_str = forecast_data.get("final_probability", "0%").replace("%", "")
+                try:
+                    final_probability = float(final_prob_str) / 100.0
+                except (ValueError, TypeError):
+                    final_probability = 0.0
+                
+                # Parse confidence range
+                confidence_range = forecast_data.get("confidence_range", "0%-0%")
+                try:
+                    low_str, high_str = confidence_range.split("-")
+                    confidence_range_low = float(low_str.replace("%", "")) / 100.0
+                    confidence_range_high = float(high_str.replace("%", "")) / 100.0
+                except (ValueError, AttributeError):
+                    confidence_range_low = max(0.0, final_probability - 0.05)
+                    confidence_range_high = min(1.0, final_probability + 0.05)
+                
+                # Extract baseline
+                baseline_str = forecast_data.get("baseline", "0%").replace("%", "")
+                try:
+                    baseline_value = float(baseline_str) / 100.0
+                except (ValueError, TypeError):
+                    baseline_value = final_probability
+                
+                # Transform adjustments
+                adjustments = forecast_data.get("adjustments", [])
+                terrain_adjustments = [
+                    AdjustmentDetail(
+                        factor_name=adj.get("label", "Unknown"),
+                        adjustment_percentage=float(adj.get("impact", "0%").replace("%", "").replace("+", ""))
+                    )
+                    for adj in adjustments
+                ]
+                
+                return ForecastResult(
+                    final_probability=final_probability,
+                    confidence_range_low=confidence_range_low,
+                    confidence_range_high=confidence_range_high,
+                    baseline_value=baseline_value,
+                    terrain_adjustments=terrain_adjustments,
+                    full_explanation=rationale
+                )
             else:
                 # Return structured error for LLM agents
                 error_detail = f"Render API request failed with status code {response.status_code}"
